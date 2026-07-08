@@ -1,0 +1,53 @@
+"state","sector","level","change"
+"Ohio","Mining & Logging","supersector",0
+"Ohio","Construction","supersector",-0.900000000000034
+"Ohio","Manufacturing","supersector",1.10000000000002
+"Ohio","Trade, Transp & Utilities","supersector",-2.79999999999995
+"Ohio","Retail Trade","subsector",0.300000000000068
+"Ohio","Transp & Warehousing","subsector",-2.60000000000002
+"Ohio","Information","supersector",-0.599999999999994
+"Ohio","Financial Activities","supersector",-0.600000000000023
+"Ohio","Professional & Business Svcs","supersector",-0.5
+"Ohio","Education & Health Svcs","supersector",1.20000000000005
+"Ohio","Leisure & Hospitality","supersector",0.700000000000045
+"Ohio","Other Services","supersector",-0.699999999999989
+"Ohio","Government","supersector",0.700000000000045
+"Pennsylvania","Mining & Logging","supersector",0
+"Pennsylvania","Construction","supersector",-1.69999999999999
+"Pennsylvania","Manufacturing","supersector",1.09999999999991
+"Pennsylvania","Trade, Transp & Utilities","supersector",-0.799999999999955
+"Pennsylvania","Retail Trade","subsector",-0.100000000000023
+"Pennsylvania","Transp & Warehousing","subsector",-1
+"Pennsylvania","Information","supersector",-0.300000000000011
+"Pennsylvania","Financial Activities","supersector",0.199999999999989
+"Pennsylvania","Professional & Business Svcs","supersector",0.700000000000045
+"Pennsylvania","Education & Health Svcs","supersector",4.30000000000018
+"Pennsylvania","Leisure & Hospitality","supersector",3.10000000000002
+"Pennsylvania","Other Services","supersector",0.300000000000011
+"Pennsylvania","Government","supersector",2.10000000000002
+"Kentucky","Mining & Logging","supersector",0.0999999999999996
+"Kentucky","Construction","supersector",-0.599999999999994
+"Kentucky","Manufacturing","supersector",-0.800000000000011
+"Kentucky","Trade, Transp & Utilities","supersector",-1.30000000000001
+"Kentucky","Retail Trade","subsector",0
+"Kentucky","Transp & Warehousing","subsector",-0.200000000000017
+"Kentucky","Information","supersector",0
+"Kentucky","Financial Activities","supersector",-0.599999999999994
+"Kentucky","Professional & Business Svcs","supersector",0.300000000000011
+"Kentucky","Education & Health Svcs","supersector",0
+"Kentucky","Leisure & Hospitality","supersector",0.200000000000017
+"Kentucky","Other Services","supersector",-0.800000000000011
+"Kentucky","Government","supersector",0.399999999999977
+"West Virginia","Mining & Logging","supersector",0
+"West Virginia","Construction","supersector",-1.1
+"West Virginia","Manufacturing","supersector",0.100000000000001
+"West Virginia","Trade, Transp & Utilities","supersector",-0.200000000000003
+"West Virginia","Retail Trade","subsector",0.0999999999999943
+"West Virginia","Transp & Warehousing","subsector",-0.0999999999999979
+"West Virginia","Information","supersector",0
+"West Virginia","Financial Activities","supersector",-0.100000000000001
+"West Virginia","Professional & Business Svcs","supersector",0.599999999999994
+"West Virginia","Education & Health Svcs","supersector",0.400000000000006
+"West Virginia","Leisure & Hospitality","supersector",0.199999999999989
+"West Virginia","Other Services","supersector",0.200000000000003
+"West Virginia","Government","supersector",9.59999999999999

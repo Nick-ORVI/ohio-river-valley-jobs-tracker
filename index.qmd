@@ -1,0 +1,343 @@
+---
+title: "Ohio River Valley Jobs Tracker"
+format:
+  dashboard:
+    theme: cosmo
+    nav-buttons: []
+execute:
+  echo: false
+  warning: false
+  message: false
+---
+
+```{r}
+#| label: setup
+
+library(ggplot2)
+library(ggthemes)
+library(dplyr)
+library(plotly)
+library(DT)
+library(htmltools)
+
+state_levels <- c("Ohio", "Pennsylvania", "Kentucky", "West Virginia")
+
+state_colors <- c(
+  "Ohio"          = "#00a4d9",
+  "Pennsylvania"  = "#d42e12",
+  "Kentucky"      = "#f2af00",
+  "West Virginia" = "#3d3d3d"
+)
+
+gain_loss_colors <- c("Gain" = "#00a4d9", "Loss" = "#d42e12")
+
+# ---- Dashboard period settings ----------------------------------------------
+# Update chart_month_num / chart_year here each month; every date label and
+# title on every tab is derived from these two values, plus the automatically
+# computed prior month and YTD baseline year below.
+
+chart_month_num <- 5
+chart_year      <- 2026
+
+chart_month <- month.name[chart_month_num]
+
+if (chart_month_num == 1) {
+  prior_month_num <- 12
+  prior_year       <- chart_year - 1
+} else {
+  prior_month_num <- chart_month_num - 1
+  prior_year       <- chart_year
+}
+prior_month <- month.name[prior_month_num]
+
+# Year-to-date baseline is always December of the prior calendar year.
+baseline_year <- chart_year - 1
+
+sector_data  <- read.csv("state_sector_data.csv", stringsAsFactors = FALSE)
+summary_data <- read.csv("state_net_change_summary.csv", stringsAsFactors = FALSE)
+rolling_data <- read.csv("state_sector_rolling_data.csv", stringsAsFactors = FALSE)
+ytd_data     <- read.csv("state_sector_ytd_data.csv", stringsAsFactors = FALSE)
+growth_vs_national <- read.csv("state_ytd_growth_vs_national.csv", stringsAsFactors = FALSE)
+
+sector_data$state <- factor(sector_data$state, levels = state_levels)
+ytd_data$state     <- factor(ytd_data$state, levels = state_levels)
+
+# Order sectors by total (4-state) change, ascending.
+sector_order <- sector_data %>%
+  group_by(sector) %>%
+  summarise(total = sum(change, na.rm = TRUE), .groups = "drop") %>%
+  arrange(total) %>%
+  pull(sector)
+sector_data$sector <- factor(sector_data$sector, levels = sector_order)
+
+# Same treatment for YTD change, ordered by its own 4-state total (independent
+# of the current-month order above, since a sector can rank differently YTD).
+ytd_sector_order <- ytd_data %>%
+  group_by(sector) %>%
+  summarise(total = sum(change, na.rm = TRUE), .groups = "drop") %>%
+  arrange(total) %>%
+  pull(sector)
+ytd_data$sector <- factor(ytd_data$sector, levels = ytd_sector_order)
+
+# Region-wide rolling average totals, and the sector order they define.
+# This same order (by region-wide rolling average, ascending) is reused for
+# every rolling-average chart - region and each individual state - so the
+# sectors line up row-for-row across all 5 charts.
+region_rolling_totals <- rolling_data %>%
+  group_by(sector, level) %>%
+  summarise(rolling_avg = sum(rolling_avg, na.rm = TRUE), .groups = "drop") %>%
+  arrange(rolling_avg)
+
+rolling_sector_order <- region_rolling_totals$sector
+
+region_rolling_totals$sector <- factor(region_rolling_totals$sector, levels = rolling_sector_order)
+region_rolling_totals$direction <- ifelse(region_rolling_totals$rolling_avg >= 0, "Gain", "Loss")
+
+make_state_rolling_plot <- function(state_name) {
+  df <- rolling_data %>% filter(state == state_name)
+  df$sector <- factor(df$sector, levels = rolling_sector_order)
+  df$direction <- ifelse(df$rolling_avg >= 0, "Gain", "Loss")
+
+  p <- ggplot(df, aes(x = sector, y = rolling_avg, fill = direction,
+                       text = sprintf("%s<br>%+.2f thousand/month", sector, rolling_avg))) +
+    geom_col(width = 0.7) +
+    geom_hline(yintercept = 0, linewidth = 0.5, color = "white") +
+    coord_flip() +
+    scale_fill_manual(values = gain_loss_colors) +
+    labs(x = NULL, y = "Thousands / month") +
+    theme_economist(base_size = 10) +
+    theme(legend.position = "none", axis.text.y = element_text(size = 8))
+
+  ggplotly(p, tooltip = "text") %>%
+    layout(margin = list(l = 150, t = 20, b = 50), autosize = TRUE) %>%
+    config(responsive = TRUE)
+}
+```
+
+# Current Month
+
+## Row
+
+```{r}
+#| title: !expr sprintf("%s %d Employment Change by Industry - Ohio, Pennsylvania, Kentucky, West Virginia", chart_month, chart_year)
+
+p_segmented <- ggplot(sector_data, aes(
+    x = sector, y = change, fill = state,
+    text = sprintf("%s<br>%s: %+.1f thousand", sector, state, change)
+  )) +
+  geom_col(width = 0.7, position = "stack") +
+  geom_hline(yintercept = 0, linewidth = 0.5, color = "white") +
+  coord_flip() +
+  scale_fill_manual(values = state_colors, name = NULL) +
+  labs(x = NULL, y = "Employment change (thousands), seasonally adjusted") +
+  theme_economist(base_size = 12) +
+  theme(legend.position = "top", plot.margin = margin(t = 30, r = 20, b = 10, l = 10))
+
+ggplotly(p_segmented, tooltip = "text") %>%
+  layout(legend = list(orientation = "h", x = 0.15, y = 1.08),
+         margin = list(l = 160, t = 40), autosize = TRUE) %>%
+  config(responsive = TRUE)
+```
+
+# State Net Change
+
+## Row
+
+```{r}
+#| title: !expr sprintf("State & Region Net Employment Change - %s %d vs. %s %d (single month, not a rolling average)", chart_month, chart_year, prior_month, prior_year)
+
+datatable(
+  summary_data[, c("state", "net_change", "note")],
+  colnames = c("State", "Net Change (thousands)", "Note"),
+  options = list(dom = "t", ordering = FALSE, pageLength = 5),
+  rownames = FALSE
+) %>%
+  formatRound("net_change", 1)
+```
+
+# 3-Month Rolling Avg. by Industry
+
+## Row {height="45%"}
+
+```{r}
+#| title: "Region (Ohio + Pennsylvania + Kentucky + West Virginia combined)"
+
+p_region <- ggplot(region_rolling_totals, aes(
+    x = sector, y = rolling_avg, fill = direction,
+    text = sprintf("%s<br>%+.2f thousand/month", sector, rolling_avg)
+  )) +
+  geom_col(width = 0.7) +
+  geom_hline(yintercept = 0, linewidth = 0.5, color = "white") +
+  coord_flip() +
+  scale_fill_manual(values = gain_loss_colors) +
+  labs(x = NULL, y = "Avg. monthly employment change (thousands)") +
+  theme_economist(base_size = 10) +
+  theme(legend.position = "none", axis.text.y = element_text(size = 8))
+
+ggplotly(p_region, tooltip = "text") %>%
+  layout(margin = list(l = 170, t = 20, b = 50), autosize = TRUE) %>%
+  config(responsive = TRUE)
+```
+
+## Row {height="55%"}
+
+### Column
+
+```{r}
+#| title: "Ohio"
+make_state_rolling_plot("Ohio")
+```
+
+### Column
+
+```{r}
+#| title: "Pennsylvania"
+make_state_rolling_plot("Pennsylvania")
+```
+
+## Row {height="55%"}
+
+### Column
+
+```{r}
+#| title: "Kentucky"
+make_state_rolling_plot("Kentucky")
+```
+
+### Column
+
+```{r}
+#| title: "West Virginia"
+make_state_rolling_plot("West Virginia")
+```
+
+# Year to Date
+
+```{r}
+# Per-state YTD total (supersectors only, subsectors excluded to avoid
+# double-counting), formatted as actual job counts (not thousands).
+fmt_jobs <- function(x) {
+  sprintf("%s%s", ifelse(x >= 0, "+", "-"), formatC(abs(round(x * 1000)), format = "d", big.mark = ","))
+}
+
+ytd_state_totals <- ytd_data %>%
+  filter(level == "supersector") %>%
+  group_by(state) %>%
+  summarise(total = sum(change, na.rm = TRUE), .groups = "drop")
+
+ytd_totals_lookup <- setNames(ytd_state_totals$total, as.character(ytd_state_totals$state))
+
+# YTD growth rate relative to the national rate, in percentage points.
+# Positive = state growing faster than the nation YTD; negative = slower.
+fmt_pp <- function(x) sprintf("%+.2f pp", x)
+
+relative_growth_lookup <- setNames(growth_vs_national$relative_growth_pp,
+                                    as.character(growth_vs_national$state))
+```
+
+## Row {height="18%"}
+
+```{r}
+#| content: valuebox
+#| title: "Ohio, YTD job growth"
+list(icon = if (ytd_totals_lookup["Ohio"] >= 0) "arrow-up" else "arrow-down",
+     color = if (ytd_totals_lookup["Ohio"] >= 0) "primary" else "danger",
+     value = fmt_jobs(ytd_totals_lookup["Ohio"]))
+```
+
+```{r}
+#| content: valuebox
+#| title: "Pennsylvania, YTD job growth"
+list(icon = if (ytd_totals_lookup["Pennsylvania"] >= 0) "arrow-up" else "arrow-down",
+     color = if (ytd_totals_lookup["Pennsylvania"] >= 0) "primary" else "danger",
+     value = fmt_jobs(ytd_totals_lookup["Pennsylvania"]))
+```
+
+```{r}
+#| content: valuebox
+#| title: "Kentucky, YTD job growth"
+list(icon = if (ytd_totals_lookup["Kentucky"] >= 0) "arrow-up" else "arrow-down",
+     color = if (ytd_totals_lookup["Kentucky"] >= 0) "primary" else "danger",
+     value = fmt_jobs(ytd_totals_lookup["Kentucky"]))
+```
+
+```{r}
+#| content: valuebox
+#| title: "West Virginia, YTD job growth"
+list(icon = if (ytd_totals_lookup["West Virginia"] >= 0) "arrow-up" else "arrow-down",
+     color = if (ytd_totals_lookup["West Virginia"] >= 0) "primary" else "danger",
+     value = fmt_jobs(ytd_totals_lookup["West Virginia"]))
+```
+
+## Row {height="18%"}
+
+```{r}
+#| content: valuebox
+#| title: "Ohio, YTD growth vs. U.S."
+list(icon = if (relative_growth_lookup["Ohio"] >= 0) "arrow-up" else "arrow-down",
+     color = if (relative_growth_lookup["Ohio"] >= 0) "success" else "danger",
+     value = fmt_pp(relative_growth_lookup["Ohio"]))
+```
+
+```{r}
+#| content: valuebox
+#| title: "Pennsylvania, YTD growth vs. U.S."
+list(icon = if (relative_growth_lookup["Pennsylvania"] >= 0) "arrow-up" else "arrow-down",
+     color = if (relative_growth_lookup["Pennsylvania"] >= 0) "success" else "danger",
+     value = fmt_pp(relative_growth_lookup["Pennsylvania"]))
+```
+
+```{r}
+#| content: valuebox
+#| title: "Kentucky, YTD growth vs. U.S."
+list(icon = if (relative_growth_lookup["Kentucky"] >= 0) "arrow-up" else "arrow-down",
+     color = if (relative_growth_lookup["Kentucky"] >= 0) "success" else "danger",
+     value = fmt_pp(relative_growth_lookup["Kentucky"]))
+```
+
+```{r}
+#| content: valuebox
+#| title: "West Virginia, YTD growth vs. U.S."
+list(icon = if (relative_growth_lookup["West Virginia"] >= 0) "arrow-up" else "arrow-down",
+     color = if (relative_growth_lookup["West Virginia"] >= 0) "success" else "danger",
+     value = fmt_pp(relative_growth_lookup["West Virginia"]))
+```
+
+## Row
+
+```{r}
+#| title: !expr sprintf("Year-to-Date Employment Change by Industry - December %d to %s %d", baseline_year, chart_month, chart_year)
+
+p_ytd <- ggplot(ytd_data, aes(
+    x = sector, y = change, fill = state,
+    text = sprintf("%s<br>%s: %+.1f thousand", sector, state, change)
+  )) +
+  geom_col(width = 0.7, position = "stack") +
+  geom_hline(yintercept = 0, linewidth = 0.5, color = "white") +
+  coord_flip() +
+  scale_fill_manual(values = state_colors, name = NULL) +
+  labs(x = NULL, y = "Cumulative employment change (thousands), seasonally adjusted") +
+  theme_economist(base_size = 12) +
+  theme(legend.position = "top", plot.margin = margin(t = 30, r = 20, b = 10, l = 10))
+
+ytd_plot <- ggplotly(p_ytd, tooltip = "text") %>%
+  layout(legend = list(orientation = "h", x = 0.15, y = 1.08),
+         margin = list(l = 160, t = 40), autosize = TRUE) %>%
+  config(responsive = TRUE)
+
+tagList(
+  ytd_plot,
+  tags$p(
+    style = "font-size: 0.8em; color: #555; margin-top: 8px;",
+    sprintf(
+      paste(
+        "Note: cumulative change is measured from December %d (the standard year-to-date baseline)",
+        "through %s %d. West Virginia's Government total - and its outsized YTD growth vs. U.S. figure",
+        "above - still includes the same April-to-May seasonal-adjustment artifact discussed on the",
+        "other tabs (see State Net Change), so both should be read with that in mind."
+      ),
+      baseline_year, chart_month, chart_year
+    )
+  )
+)
+```
