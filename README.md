@@ -109,18 +109,19 @@ total + the West Virginia caveat note).
 
 ### Step C — Update the two settings at the top of `index.qmd`
 
-Every date label on every tab (Current Month, State Net Change, Year to
-Date) is now derived from two variables in the setup chunk near the top of
-`index.qmd`:
+Every date label on every tab (Current Month, 3-Month Rolling Avg. by
+Industry, Year to Date) is now derived from two variables in the setup
+chunk near the top of `index.qmd`:
 
 ```r
 chart_month_num <- 5      # 1 = January, 2 = February, ... 12 = December
 chart_year      <- 2026
 ```
 
-Update just these two lines. The prior month (for the "State Net Change"
-comparison) and the year-to-date baseline (December of the prior calendar
-year, for the "Year to Date" tab) are both computed automatically from
+Update just these two lines. The prior month (for the single-month
+comparison behind the value boxes on the Current Month tab) and the
+year-to-date baseline (December of the prior calendar year, for the "Year
+to Date" tab) are both computed automatically from
 them — including correctly rolling back to December of the previous year if
 you ever set `chart_month_num <- 1`. Every card title and footnote that
 mentions a month or year (`!expr sprintf(...)` in the chunk title options,
@@ -129,8 +130,9 @@ same two variables, so nothing else in `index.qmd` needs manual editing for
 a routine monthly update.
 
 **Special annual note:** the West Virginia seasonal-adjustment footnote
-(both in `index.qmd`'s Year to Date tab and in `state_net_change_analysis.R`)
-lists specific past Aprils-to-May swings (2022, 2024, ... 2026) as static
+(in `index.qmd`'s Current Month and Year to Date tabs, and in
+`state_net_change_analysis.R`) lists specific past Aprils-to-May swings
+(2022, 2024, ... 2026) as static
 text — this is intentionally *not* derived from `chart_month_num`/
 `chart_year`, since the quirk is specifically about April→May transitions
 regardless of what month the dashboard currently targets. It only needs a
@@ -157,9 +159,9 @@ Open `index.html` directly in a browser, or serve it locally:
 ```
 python3 -m http.server 4173 --directory .
 ```
-Then visit `http://localhost:4173/index.html` and click through all 4 tabs
-(Current Month, State Net Change, 3-Month Rolling Avg. by Industry, Year to
-Date) to confirm the numbers and titles reflect the new month.
+Then visit `http://localhost:4173/index.html` and click through all 3 tabs
+(Current Month, 3-Month Rolling Avg. by Industry, Year to Date) to confirm
+the numbers and titles reflect the new month.
 
 ### Step F (optional) — Refresh the standalone static PNGs
 
@@ -196,16 +198,16 @@ quarto render index.qmd
 | `fetch_state_sector_ytd_data.R` | script | Pulls December-baseline vs. target-month data → `state_sector_ytd_data.csv` |
 | `state_sector_rolling_avg_chart.R` | script | Pulls monthly levels, computes 3-month rolling average → `state_sector_rolling_data.csv` (+ standalone PNG) |
 | `fetch_ytd_growth_vs_national.R` | script | Pulls state + national total-nonfarm levels, computes YTD % growth and state-minus-national gap → `state_ytd_growth_vs_national.csv` |
-| `state_net_change_analysis.R` | script | Reads `state_sector_data.csv`, computes per-state + region totals → `state_net_change_summary.csv` |
+| `state_net_change_analysis.R` | script | Reads `state_sector_data.csv`, computes per-state + region totals → `state_net_change_summary.csv` (drives the net-change value boxes on the Current Month tab) |
 | `state_sector_chart.R` | script (optional) | Standalone stacked-bar PNG, current month |
 | `state_sector_chart_clustered.R` | script (optional) | Standalone clustered-bar PNG, current month, with per-sector totals |
 | `state_sector_rolling_avg_by_state_charts.R` | script (optional) | Standalone rolling-average PNGs, one per state |
 | `state_sector_data.csv` | data | Current month change, by state and sector |
 | `state_sector_ytd_data.csv` | data | Year-to-date cumulative change, by state and sector |
 | `state_sector_rolling_data.csv` | data | 3-month rolling average change, by state and sector |
-| `state_net_change_summary.csv` | data | Per-state and region net change totals + WV caveat note |
+| `state_net_change_summary.csv` | data | Per-state and region net change totals + WV caveat note (shown as value boxes + footnote on the Current Month tab) |
 | `state_ytd_growth_vs_national.csv` | data | Per-state YTD % growth, national YTD % growth, and the difference in percentage points |
-| `index.qmd` | dashboard source | Quarto dashboard — reads the 5 CSVs above, builds all 4 tabs |
+| `index.qmd` | dashboard source | Quarto dashboard — reads the 5 CSVs above, builds all 3 tabs |
 | `index.html` / `index_files/` | dashboard output | Rendered static site (regenerate with `quarto render index.qmd`) |
 
 ---
@@ -215,7 +217,7 @@ quarto render index.qmd
 West Virginia's "Government" sector shows a large, recurring April→May spike
 in the *seasonally adjusted* series that reverses the following month. This
 has been confirmed as a small-sample seasonal-adjustment artifact, not real
-hiring (see the footnote on the State Net Change and Year to Date tabs). It
+hiring (see the footnote on the Current Month and Year to Date tabs). It
 will keep showing up every year around the same time — that's expected, not
 a bug in these scripts. It also inflates West Virginia's "YTD growth vs.
 U.S." value box on the Year to Date tab (a small state's total nonfarm base

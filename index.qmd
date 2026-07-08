@@ -17,7 +17,6 @@ library(ggplot2)
 library(ggthemes)
 library(dplyr)
 library(plotly)
-library(DT)
 library(htmltools)
 
 state_levels <- c("Ohio", "Pennsylvania", "Kentucky", "West Virginia")
@@ -30,6 +29,12 @@ state_colors <- c(
 )
 
 gain_loss_colors <- c("Gain" = "#00a4d9", "Loss" = "#d42e12")
+
+# Formats a change already expressed in thousands as a full job count with
+# thousands separators, e.g. 21.6 -> "+21,600".
+fmt_jobs <- function(x) {
+  sprintf("%s%s", ifelse(x >= 0, "+", "-"), formatC(abs(round(x * 1000)), format = "d", big.mark = ","))
+}
 
 # ---- Dashboard period settings ----------------------------------------------
 # Update chart_month_num / chart_year here each month; every date label and
@@ -128,6 +133,55 @@ make_state_rolling_plot <- function(state_name) {
 
 # Current Month
 
+```{r}
+# Single-month net change per state + region total (see
+# state_net_change_analysis.R). Not a rolling average.
+net_change_lookup <- setNames(summary_data$net_change, summary_data$state)
+wv_net_change_note <- summary_data$note[summary_data$state == "West Virginia"]
+```
+
+## Row {height="18%"}
+
+```{r}
+#| content: valuebox
+#| title: "Ohio, net change"
+list(icon = if (net_change_lookup["Ohio"] >= 0) "arrow-up" else "arrow-down",
+     color = if (net_change_lookup["Ohio"] >= 0) "success" else "danger",
+     value = fmt_jobs(net_change_lookup["Ohio"]))
+```
+
+```{r}
+#| content: valuebox
+#| title: "Pennsylvania, net change"
+list(icon = if (net_change_lookup["Pennsylvania"] >= 0) "arrow-up" else "arrow-down",
+     color = if (net_change_lookup["Pennsylvania"] >= 0) "success" else "danger",
+     value = fmt_jobs(net_change_lookup["Pennsylvania"]))
+```
+
+```{r}
+#| content: valuebox
+#| title: "Kentucky, net change"
+list(icon = if (net_change_lookup["Kentucky"] >= 0) "arrow-up" else "arrow-down",
+     color = if (net_change_lookup["Kentucky"] >= 0) "success" else "danger",
+     value = fmt_jobs(net_change_lookup["Kentucky"]))
+```
+
+```{r}
+#| content: valuebox
+#| title: "West Virginia, net change"
+list(icon = if (net_change_lookup["West Virginia"] >= 0) "arrow-up" else "arrow-down",
+     color = if (net_change_lookup["West Virginia"] >= 0) "success" else "danger",
+     value = fmt_jobs(net_change_lookup["West Virginia"]))
+```
+
+```{r}
+#| content: valuebox
+#| title: "Region total, net change"
+list(icon = if (net_change_lookup["Region Total"] >= 0) "arrow-up" else "arrow-down",
+     color = if (net_change_lookup["Region Total"] >= 0) "success" else "danger",
+     value = fmt_jobs(net_change_lookup["Region Total"]))
+```
+
 ## Row
 
 ```{r}
@@ -145,26 +199,21 @@ p_segmented <- ggplot(sector_data, aes(
   theme_economist(base_size = 12) +
   theme(legend.position = "top", plot.margin = margin(t = 30, r = 20, b = 10, l = 10))
 
-ggplotly(p_segmented, tooltip = "text") %>%
+segmented_plot <- ggplotly(p_segmented, tooltip = "text") %>%
   layout(legend = list(orientation = "h", x = 0.15, y = 1.08),
          margin = list(l = 160, t = 40), autosize = TRUE) %>%
   config(responsive = TRUE)
-```
 
-# State Net Change
-
-## Row
-
-```{r}
-#| title: !expr sprintf("State & Region Net Employment Change - %s %d vs. %s %d (single month, not a rolling average)", chart_month, chart_year, prior_month, prior_year)
-
-datatable(
-  summary_data[, c("state", "net_change", "note")],
-  colnames = c("State", "Net Change (thousands)", "Note"),
-  options = list(dom = "t", ordering = FALSE, pageLength = 5),
-  rownames = FALSE
-) %>%
-  formatRound("net_change", 1)
+tagList(
+  segmented_plot,
+  tags$p(
+    style = "font-size: 0.8em; color: #555; margin-top: 8px;",
+    sprintf(
+      "Note: figures above are single-month change (%s %d vs. %s %d), not a rolling average. %s",
+      chart_month, chart_year, prior_month, prior_year, wv_net_change_note
+    )
+  )
+)
 ```
 
 # 3-Month Rolling Avg. by Industry
@@ -230,10 +279,6 @@ make_state_rolling_plot("West Virginia")
 ```{r}
 # Per-state YTD total (supersectors only, subsectors excluded to avoid
 # double-counting), formatted as actual job counts (not thousands).
-fmt_jobs <- function(x) {
-  sprintf("%s%s", ifelse(x >= 0, "+", "-"), formatC(abs(round(x * 1000)), format = "d", big.mark = ","))
-}
-
 ytd_state_totals <- ytd_data %>%
   filter(level == "supersector") %>%
   group_by(state) %>%
@@ -348,7 +393,7 @@ tagList(
         "Note: cumulative change is measured from December %d (the standard year-to-date baseline)",
         "through %s %d. West Virginia's Government total - and its outsized YTD growth vs. U.S. figure",
         "above - still includes the same April-to-May seasonal-adjustment artifact discussed on the",
-        "other tabs (see State Net Change), so both should be read with that in mind."
+        "Current Month tab, so both should be read with that in mind."
       ),
       baseline_year, chart_month, chart_year
     )
