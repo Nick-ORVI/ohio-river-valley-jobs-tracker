@@ -93,6 +93,16 @@ rolling_sector_order <- region_rolling_totals$sector
 region_rolling_totals$sector <- factor(region_rolling_totals$sector, levels = rolling_sector_order)
 region_rolling_totals$direction <- ifelse(region_rolling_totals$rolling_avg >= 0, "Gain", "Loss")
 
+# Caps a plotly widget's width so bar charts don't stretch thin across wide
+# monitors - width still shrinks to fit narrower screens, it just stops
+# growing past max_width_px.
+constrain_width <- function(widget, max_width_px) {
+  div(
+    style = sprintf("max-width: %dpx; width: 100%%; margin: 0 auto;", max_width_px),
+    widget
+  )
+}
+
 make_state_rolling_plot <- function(state_name) {
   df <- rolling_data %>% filter(state == state_name)
   df$sector <- factor(df$sector, levels = rolling_sector_order)
@@ -108,9 +118,11 @@ make_state_rolling_plot <- function(state_name) {
     theme_economist(base_size = 10) +
     theme(legend.position = "none", axis.text.y = element_text(size = 8))
 
-  ggplotly(p, tooltip = "text") %>%
+  plot_widget <- ggplotly(p, tooltip = "text") %>%
     layout(margin = list(l = 150, t = 20, b = 50), autosize = TRUE) %>%
     config(responsive = TRUE)
+
+  constrain_width(plot_widget, 650)
 }
 ```
 
@@ -174,9 +186,11 @@ p_region <- ggplot(region_rolling_totals, aes(
   theme_economist(base_size = 10) +
   theme(legend.position = "none", axis.text.y = element_text(size = 8))
 
-ggplotly(p_region, tooltip = "text") %>%
+region_plot <- ggplotly(p_region, tooltip = "text") %>%
   layout(margin = list(l = 170, t = 20, b = 50), autosize = TRUE) %>%
   config(responsive = TRUE)
+
+constrain_width(region_plot, 1000)
 ```
 
 ## Row {height="55%"}
